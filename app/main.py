@@ -15,8 +15,8 @@ class GetParamsResponse(BaseModel):
     data: Dict[str, Any]
 
 
-@app.post("/api/v1/getparams.execute", response_model=GetParamsResponse)
-async def get_params(request: GetParamsRequest):
+@app.post("/api/v1/getparams.execute")
+async def get_params(request: Any) -> GetParamsResponse:
     # Example logic
     result = {"received_param1": request.param1, "received_param2": request.param2}
     return GetParamsResponse(success=True, data=result)
