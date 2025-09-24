@@ -1,0 +1,7 @@
+[tasks.start-redis]
+run = "docker-compose up -d redis"
+
+
+[tasks.serve]
+depends = "start-redis"
+run = "uv run main.py"
