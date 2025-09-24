@@ -1,0 +1,63 @@
+---
+minimum_pre_commit_version: 3.0.0
+default_language_version:
+  python: python3.13
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: debug-statements
+        files: ^backend/
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.28.0
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/woodruffw/zizmor-pre-commit
+    rev: v1.13.0
+    hooks:
+      - id: zizmor
+        args:
+          - --fix=all
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.13.1
+    hooks:
+      - id: hadolint
+
+  - repo: https://github.com/docker-compose-linter/pre-commit-dclint
+    rev: v3.1.0
+    hooks:
+      - id: dclint
+        files: docker-compose.*.yml
+        args: [--fix]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        types_or: [python, ts, tsx, markdown]
+        args: [--ignore-words, .codespell-ignore-words]
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        exclude: ^app/gateway/protos/
+        types_or: [html, json, yaml, markdown, javascript]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.13.1
+    hooks:
+      - id: ruff-check
+        language: python
+        args: [--fix, --exit-non-zero-on-fix]
+        exclude: pb2.*.py
+      - id: ruff-format
+        language: python
+        exclude: pb2.*.py
