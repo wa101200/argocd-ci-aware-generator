@@ -1,0 +1,68 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ matrix.project.directory }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - name: argocd-validate-ci-checks-generator
+            directory: app/
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        id: setup-buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: set tag
+        if: ${{ github.ref != 'refs/heads/master' }}
+        run: echo "TAG=${{ github.event.pull_request.head.sha }}${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
+
+      - name: set tag for main
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run: echo "TAG=${{ github.sha }}${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
+
+      - name: set tag for pull request
+        if: ${{ github.ref != 'refs/heads/master' }}
+        run: echo "BRANCH_TAG=pr-${{ github.event.pull_request.number }}${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
+
+      - name: set tag for main
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run: echo "BRANCH_TAG=latest${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
+
+      - name: Build and push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+        with:
+          push: true
+          context: ${{ matrix.project.directory }}
+          cache-from: type=registry,ref=${{ secrets.REGISTRY_URL }}/${{ matrix.project.name }}:${{ env.BRANCH_TAG }}
+          cache-to: type=registry,ref=${{ secrets.REGISTRY_URL }}/${{ matrix.project.name }}:${{ env.BRANCH_TAG }},mode=max
+          build-args: ${{ matrix.project.build-args }}
+          file: ${{ matrix.project.directory }}/Dockerfile
+          tags: |
+            ${{ secrets.REGISTRY_URL }}/${{ matrix.project.name }}:${{ env.TAG }}
+            ${{ secrets.REGISTRY_URL }}/${{ matrix.project.name }}:${{ env.BRANCH_TAG }}
