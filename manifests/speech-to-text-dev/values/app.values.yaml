@@ -1,0 +1,39 @@
+applicationName: plugin
+
+deployment:
+  image:
+    repository: crk8swa101frcdev2.azurecr.io/argocd-validate-ci-checks-generator
+    tag: 68a46d5bba43a9ab69d978d3be6824a9378c94b1
+    pullPolicy: Always
+
+  terminationGracePeriodSeconds: 1
+
+  env:
+    UV_LOG_LEVEL:
+      value: debug
+    REDIS_HOST:
+      value: redis-stack.argocd-validate-ci-checks-generators-plugin-latest
+
+  command: ["python", "/app/main.py"]
+  containerSecurityContext:
+    runAsNonRoot: false
+    readOnlyRootFilesystem: false
+
+ingress:
+  enabled: true
+  ingressClassName: nginx-internal
+  annotations:
+    kubernetes.io/ingress.class: nginx-internal
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+  hosts:
+    - host: speech-to-text-latest.privatelink.francecentral.azmk8s.io
+      paths:
+        - path: /
+          pathType: Prefix
+          servicePort: http
+
+service:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
