@@ -21,3 +21,7 @@ pnpm-debug.log*
 
 # uv
 *.pyc
+secret.yaml
+.env
+
+db.json
