@@ -38,7 +38,8 @@ spec:
             key: token
         filters:
           - repositoryMatch: ^argocd-validate-ci-cheks-generators
-            branchMatch: master
+            branchMatch: develop-primary-input
+
   template:
     metadata:
       name: argocd-validate-ci-checks-generators-plugin-latest
@@ -56,7 +57,7 @@ spec:
           repoURL: https://stakater.github.io/stakater-charts
           targetRevision: "~6.8"
           helm:
-            releaseName: scheduler
+            releaseName: plugin
             valuesObject:
               deployment:
                 image:
@@ -73,11 +74,11 @@ spec:
               - $values/manifests/speech-to-text-dev/values/redis.values.yaml
 
         - repoURL: git@github.com:wa101200/argocd-validate-ci-cheks-generators
-          targetRevision: master
+          targetRevision: "{{ sha }}"
           ref: values
 
         - repoURL: git@github.com:wa101200/argocd-validate-ci-cheks-generators
-          targetRevision: master
+          targetRevision: "{{ sha }}"
           path: manifests/speech-to-text-dev/resources
 
       destination:

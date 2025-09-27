@@ -1,6 +1,10 @@
 applicationName: plugin
 
 deployment:
+  ports:
+    - containerPort: 8080
+      name: http
+      protocol: TCP
   image:
     repository: crk8swa101frcdev2.azurecr.io/argocd-validate-ci-checks-generator
     tag: 68a46d5bba43a9ab69d978d3be6824a9378c94b1
@@ -13,6 +17,11 @@ deployment:
       value: debug
     REDIS_HOST:
       value: redis-stack.argocd-validate-ci-checks-generators-plugin-latest
+    GH_TOKEN:
+      valueFrom:
+        secretKeyRef:
+          name: github-token
+          key: GH_TOKEN
 
   containerSecurityContext:
     runAsNonRoot: false
@@ -23,7 +32,6 @@ ingress:
   ingressClassName: nginx-internal
   annotations:
     kubernetes.io/ingress.class: nginx-internal
-    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
   hosts:
     - host: speech-to-text-latest.privatelink.francecentral.azmk8s.io
       paths:

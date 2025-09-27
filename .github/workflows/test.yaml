@@ -8,6 +8,10 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  statuses: read
+  pull-requests: read
+  checks: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,6 +19,7 @@ concurrency:
 
 env:
   UV_CACHE_DIR: /home/runner/.cache/uv
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   test:
@@ -45,3 +50,6 @@ jobs:
 
       - name: uv sync
         run: uv sync --locked
+
+      - name: Run tests
+        run: uv run pytest -n 10

@@ -1,0 +1,37 @@
+meta {
+  name: Post SCM Non valid for pre-commit, valid for build
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/api/v1/getparams.execute
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "applicationSetName": "appset-scm-branch-example",
+    "input": {
+      "parameters": {
+        "sourceGeneratorType": "scm",
+        "checks_regex": [
+          "build"
+        ],
+        "data": {
+          "organization": "wa101200",
+          "repository": "argocd-validate-ci-cheks-generators",
+          "branch": "main",
+          "sha": "4ff870721e8d4d7de1ce2ddf5c6b69f47f34e98c",
+          "other" : "state",
+          "jfjf": "fjfjf"
+        }
+      }
+    }
+  }
+}
+
+settings {
+  encodeUrl: true
+}

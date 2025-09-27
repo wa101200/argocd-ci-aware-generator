@@ -1,12 +1,3 @@
-[tasks.start-redis]
-run = "docker-compose up -d redis"
-
-
-[tasks.serve]
-depends = "start-redis"
-run = "uv run main.py"
-
-
 [tools]
 uv = "0.8.17"
 pre-commit = "4.3.0"

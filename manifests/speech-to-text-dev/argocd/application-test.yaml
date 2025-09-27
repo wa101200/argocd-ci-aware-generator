@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argocd-validate-ci-checks-generators-plugin-test
+  namespace: argocd
+spec:
+  generators:
+    - matrix:
+        generators:
+          - scmProvider:
+              github:
+                organization: wa101200
+                allBranches: true
+                tokenRef:
+                  secretName: github-token
+                  key: token
+              filters:
+                - repositoryMatch: ^argocd-validate-ci-cheks-generators
+                  branchMatch: develop-primary-input
+          - plugin:
+              requeueAfterSeconds: 5
+              configMapRef:
+                name: argocd-validate-ci-checks-generators-plugin-latest
+              input:
+                parameters:
+                  branch: "{{ branch }}"
+                  organization: "{{ organization }}"
+                  repository: "{{ repository }}"
+                  sha: "{{ sha }}"
+
+                  state:
+                    test: "test"
+                    test2: "test2"
+  template:
+    metadata:
+      name: argocd-validate-ci-checks-generators-plugin-test
+      namespace: argocd
+    spec:
+      project: argocd-validate-ci-checks-generators-plugin
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+        automated:
+          prune: true
+          selfHeal: true
+      sources:
+        - repoURL: git@github.com:wa101200/argocd-validate-ci-cheks-generators
+          targetRevision: "{{ sha }}"
+          path: manifests/speech-to-text-dev/resources
+
+      destination:
+        server: "https://kubernetes.default.svc"
+        namespace: argocd-validate-ci-checks-generators-plugin-test
