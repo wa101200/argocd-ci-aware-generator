@@ -48,7 +48,7 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        exclude: ^app/gateway/protos/
+        exclude: ^app/gateway/protos/|^chart/
         types_or: [html, json, yaml, markdown, javascript]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
