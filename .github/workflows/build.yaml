@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          - name: argocd-validate-ci-checks-generator
+          - name: wadhah101/argocd-validate-ci-checks-generator
             directory: app/
 
     steps:
