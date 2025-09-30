@@ -3,7 +3,8 @@
 import pytest
 from httpx import AsyncClient
 
-from state import create_application, get_application
+from containers import Container
+from state import DatabaseService
 
 # NOTE: These tests require a valid GITHUB_TOKEN environment variable.
 # The tests run against a real, public GitHub repository and will fail without it.
@@ -25,6 +26,12 @@ FAIL_SHA = "4f18d12c487449ef5120b3ed0ecba268edf5dbb8"
 
 PASSING_CHECKS_REGEX = ["pre-commit"]
 FAILING_CHECKS_REGEX = ["pre-commit"]
+
+
+@pytest.fixture
+def db_service(container: Container) -> DatabaseService:
+    """A fixture that provides a database service for testing."""
+    return container.db_service()
 
 
 # --- Helper Function ---
@@ -79,7 +86,10 @@ GENERATOR_CONFIGS = [
 @pytest.mark.asyncio
 @pytest.mark.parametrize("generator_type, repo_url", GENERATOR_CONFIGS)
 async def test_checks_pass_no_existing_app(
-    client: AsyncClient, generator_type: str, repo_url: str | None
+    client: AsyncClient,
+    generator_type: str,
+    repo_url: str | None,
+    db_service: DatabaseService,
 ) -> None:
     """Tests when checks pass and no application exists in the state.
 
@@ -95,7 +105,7 @@ async def test_checks_pass_no_existing_app(
     sha_key = "sha" if generator_type == "scm" else "head_sha"
     assert data["output"]["parameters"][0][sha_key] == SUCCESS_SHA
 
-    db_app = await get_application(APP_SET_NAME, REPO_NAME, BRANCH)
+    db_app = db_service.get_application(APP_SET_NAME, REPO_NAME, BRANCH)
     assert db_app is not None
     assert db_app["state"][sha_key] == SUCCESS_SHA
 
@@ -103,7 +113,10 @@ async def test_checks_pass_no_existing_app(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("generator_type, repo_url", GENERATOR_CONFIGS)
 async def test_checks_fail_no_existing_app(
-    client: AsyncClient, generator_type: str, repo_url: str | None
+    client: AsyncClient,
+    generator_type: str,
+    repo_url: str | None,
+    db_service: DatabaseService,
 ) -> None:
     """Tests when checks fail and no application exists.
 
@@ -116,14 +129,17 @@ async def test_checks_fail_no_existing_app(
     data = response.json()
     assert data["output"]["parameters"] == []
 
-    db_app = await get_application(APP_SET_NAME, REPO_NAME, BRANCH)
+    db_app = db_service.get_application(APP_SET_NAME, REPO_NAME, BRANCH)
     assert db_app is None
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("generator_type, repo_url", GENERATOR_CONFIGS)
 async def test_checks_fail_with_existing_app(
-    client: AsyncClient, generator_type: str, repo_url: str | None
+    client: AsyncClient,
+    generator_type: str,
+    repo_url: str | None,
+    db_service: DatabaseService,
 ) -> None:
     """Tests when checks fail but an older application state exists.
 
@@ -135,7 +151,7 @@ async def test_checks_fail_with_existing_app(
         sha_key: "old-sha",
     }
 
-    await create_application(APP_SET_NAME, REPO_NAME, BRANCH, previous_state)
+    db_service.create_application(APP_SET_NAME, REPO_NAME, BRANCH, previous_state)
 
     payload = build_payload(generator_type, FAIL_SHA, FAILING_CHECKS_REGEX, repo_url)
     response = await client.post("/api/v1/getparams.execute", json=payload)
@@ -149,7 +165,10 @@ async def test_checks_fail_with_existing_app(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("generator_type, repo_url", GENERATOR_CONFIGS)
 async def test_checks_pass_with_existing_app_update(
-    client: AsyncClient, generator_type: str, repo_url: str | None
+    client: AsyncClient,
+    generator_type: str,
+    repo_url: str | None,
+    db_service: DatabaseService,
 ) -> None:
     """Tests when checks pass and an application state already exists.
 
@@ -157,7 +176,7 @@ async def test_checks_pass_with_existing_app_update(
     """
     sha_key = "sha" if generator_type == "scm" else "head_sha"
     previous_state = {"repository": REPO_NAME, sha_key: "old-sha"}
-    await create_application(APP_SET_NAME, REPO_NAME, BRANCH, previous_state)
+    db_service.create_application(APP_SET_NAME, REPO_NAME, BRANCH, previous_state)
 
     payload = build_payload(generator_type, SUCCESS_SHA, PASSING_CHECKS_REGEX, repo_url)
     response = await client.post("/api/v1/getparams.execute", json=payload)
@@ -167,6 +186,53 @@ async def test_checks_pass_with_existing_app_update(
     assert len(data["output"]["parameters"]) == 1
     assert data["output"]["parameters"][0][sha_key] == SUCCESS_SHA
 
-    db_app = await get_application(APP_SET_NAME, REPO_NAME, BRANCH)
+    db_app = db_service.get_application(APP_SET_NAME, REPO_NAME, BRANCH)
     assert db_app is not None
     assert db_app["state"][sha_key] == SUCCESS_SHA
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("generator_type, repo_url", GENERATOR_CONFIGS)
+async def test_cache_hit_returns_current_request_state(
+    client: AsyncClient,
+    generator_type: str,
+    repo_url: str | None,
+    db_service: DatabaseService,
+) -> None:
+    """Tests that a cache hit returns the state from the current request.
+
+    When the `sha_check_fingerprint` matches an existing record, the endpoint
+    should return the parameters from the current request payload, not the
+    state stored in the database. The database should also not be updated.
+    """
+    checks_regex = PASSING_CHECKS_REGEX
+    sha_check_fingerprint = "+".join([SUCCESS_SHA, *checks_regex])
+
+    # 1. Create a pre-existing application with a specific state and fingerprint
+    previous_state = {"this_is": "old_state"}
+    db_service.create_application(
+        APP_SET_NAME,
+        REPO_NAME,
+        BRANCH,
+        previous_state,
+        last_known_good_sha=sha_check_fingerprint,
+    )
+
+    # 2. Build a new payload that will cause a cache hit
+    payload = build_payload(generator_type, SUCCESS_SHA, checks_regex, repo_url)
+    current_state = payload["input"]["parameters"]["data"]
+
+    # 3. Make the request
+    response = await client.post("/api/v1/getparams.execute", json=payload)
+    assert response.status_code == 200
+
+    # 4. Assert the response contains the state from the new payload
+    data = response.json()
+    assert len(data["output"]["parameters"]) == 1
+    assert data["output"]["parameters"][0] == current_state
+    assert data["output"]["parameters"][0] != previous_state
+
+    # 5. Verify the database state has not been updated
+    db_app = db_service.get_application(APP_SET_NAME, REPO_NAME, BRANCH)
+    assert db_app is not None
+    assert db_app["state"] == previous_state

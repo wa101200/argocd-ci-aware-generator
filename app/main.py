@@ -1,12 +1,15 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Any, Literal
 
-from fastapi import FastAPI
+from dependency_injector.wiring import Provide, inject
+from fastapi import Depends, FastAPI
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from containers import Container
 from github_utils import commit_passed_checks
-from state import create_application, get_application, update_application
+from state import DatabaseService
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -82,22 +85,26 @@ class GetParamsResponse(BaseModel):
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> None:
-    """Sets up the database and yields the application."""
-    import os
-
-    from state import setup_db
-
+async def lifespan(_app: FastAPI):  # noqa: ANN201 TODO
+    """Initializes the container and sets up the database connection."""
+    container = Container()
     db_file = os.getenv("DB_FILE", "db.json")
-    setup_db(db_file)
+    container.config.from_dict({"db_file": db_file})
+    container.wire(modules=[__name__])
+    _app.container = container
     yield
+    container.unwire()
 
 
 app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/api/v1/getparams.execute")
-async def process_argocd_param(request: GetParamsRequest) -> GetParamsResponse:
+@inject
+async def process_argocd_param(
+    request: GetParamsRequest,
+    db_service: DatabaseService = Depends(Provide[Container.db_service]),  # noqa: B008 TODO
+) -> GetParamsResponse:
     """Processes the ArgoCD getparams request."""
     application_set_name = request.applicationSetName
 
@@ -126,7 +133,24 @@ async def process_argocd_param(request: GetParamsRequest) -> GetParamsResponse:
 
         state = d.model_dump()
 
-    application_data = await get_application(application_set_name, repository, branch)
+    sha_check_fingerprint = "+".join([sha, *checks_regex])
+
+    application_data = db_service.get_application(
+        application_set_name, repository, branch
+    )
+
+    logger.debug(f"Application data: {application_data}")
+
+    if (
+        application_data is not None
+        and application_data["last_known_good_sha"] == sha_check_fingerprint
+    ):
+        logger.info(
+            f"CACHE HIT: Application found for {application_set_name}, {repository}, {branch} with last known good sha {sha_check_fingerprint} matching current SHA"  # noqa: E501
+        )
+
+        resp = {"output": {"parameters": [state]}}
+        return GetParamsResponse(**resp)
 
     checks_result = await commit_passed_checks(
         checks_regex=checks_regex,
@@ -139,15 +163,32 @@ async def process_argocd_param(request: GetParamsRequest) -> GetParamsResponse:
             logger.info(
                 f"Application not found for {application_set_name}, {repository}, {branch}"  # noqa: E501
             )
-            logger.info("Creating new application")
-            await create_application(application_set_name, repository, branch, state)
+            logger.info(
+                f"Creating new application with last known good sha {sha_check_fingerprint}"  # noqa: E501
+            )
+            db_service.create_application(
+                application_set_name,
+                repository,
+                branch,
+                state,
+                last_known_good_sha=sha_check_fingerprint,
+            )
             logger.info("Application created")
 
         else:
             logger.info(
                 f"Application found for {application_set_name}, {repository}, {branch}"
             )
-            await update_application(application_set_name, repository, branch, state)
+            logger.info(
+                f"Updating application with last known good sha {sha_check_fingerprint}"
+            )
+            db_service.update_application(
+                application_set_name,
+                repository,
+                branch,
+                state,
+                last_known_good_sha=sha_check_fingerprint,
+            )
         resp = {"output": {"parameters": [state]}}
         return GetParamsResponse(**resp)
 
