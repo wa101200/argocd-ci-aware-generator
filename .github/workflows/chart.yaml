@@ -18,4 +18,3 @@ jobs:
         uses: stefanprodan/helm-gh-pages@89c6698c192e70ed0e495bee7d3d1ca5b477fe82 # master
         with:
           token: ${{ github.token }}
-          target_dir: charts
