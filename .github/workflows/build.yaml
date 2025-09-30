@@ -5,9 +5,12 @@ on:
     branches:
       - master
   pull_request:
-  release:
-    types:
-      - published
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -57,9 +60,11 @@ jobs:
         if: ${{ github.ref == 'refs/heads/master' }}
         run: echo "BRANCH_TAG=latest${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
 
-      - name: set tag for release
-        if: ${{ github.event_name == 'release' }}
-        run: echo "BRANCH_TAG=${GITHUB_REF}${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
+      - name: set tag for manual dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: echo "BRANCH_TAG=${GITHUB_EVENT_INPUTS_TAG}" >> "$GITHUB_ENV"
+        env:
+          GITHUB_EVENT_INPUTS_TAG: ${{ github.event.inputs.tag }}
 
       - name: Build and push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6

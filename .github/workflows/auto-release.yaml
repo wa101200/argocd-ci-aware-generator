@@ -64,3 +64,9 @@ jobs:
           token: ${{ github.token }}
           chart_version: ${{ steps.increment_version.outputs.new_version }}
           app_version: "0.0.1"
+
+      - name: Create Build with workflow_dispatch
+        run: |
+          gh workflow run build.yaml -f tag=${STEPS_INCREMENT_VERSION_OUTPUTS_NEW_VERSION}
+        env:
+          STEPS_INCREMENT_VERSION_OUTPUTS_NEW_VERSION: ${{ steps.increment_version.outputs.new_version }}
