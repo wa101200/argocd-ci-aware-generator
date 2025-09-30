@@ -1,0 +1,58 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to create release
+      packages: write
+      pull-requests: read # to read pull request on release-drafter
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          persist-credentials: false
+
+      - name: Get latest release version
+        id: get_version
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            try {
+              const latestRelease = await github.rest.repos.getLatestRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              return latestRelease.data.tag_name;
+            } catch (e) {
+              if (e.status === 404) {
+                return "0.0.0";
+              }
+              throw e;
+            }
+          result-encoding: string
+
+      - name: Increment patch version
+        id: increment_version
+        run: |
+          VERSION=${STEPS_GET_VERSION_OUTPUTS_RESULT}
+          NEW_VERSION=$(echo $VERSION | awk -F. -v OFS=. '{$NF = $NF + 1;} 1')
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        env:
+          STEPS_GET_VERSION_OUTPUTS_RESULT: ${{ steps.get_version.outputs.result }}
+
+      - name: Create Release
+        uses: actions/create-release@v1 # v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          tag_name: ${{ steps.increment_version.outputs.new_version }}
+          release_name: Release ${{ steps.increment_version.outputs.new_version }}
+          body: Automated release for version ${{ steps.increment_version.outputs.new_version }}
+          draft: false
+          prerelease: false
