@@ -49,38 +49,35 @@ docker push your-registry/argocd-ci-aware-plugin:latest
 
 ### 2. Configure ArgoCD
 
-1.  **Register the Plugin**:
-    ArgoCD needs to know about the plugin. Apply a `ConfigMap` to your `argocd` namespace to register it.
+1. **Register the Plugin**:
+   ArgoCD needs to know about the plugin. Apply a `ConfigMap` to your `argocd` namespace to register it.
 
-        ```yaml
-        # argocd-plugin-cm.yaml
-        apiVersion: v1
-        kind: ConfigMap
-        metadata:
-          name: argocd-validate-ci-checks-generators-plugin
-          namespace: argocd
+```yaml
+# argocd-plugin-cm.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-validate-ci-checks-generators-plugin
+  namespace: argocd
+data: # The address of the service you deployed in the previous step
+  baseUrl: "http://<your-plugin-service-name>.<namespace>.svc.cluster.local:8080"
+```
 
-    data: # The address of the service you deployed in the previous step
-    baseUrl: "http://<your-plugin-service-name>.<namespace>.svc.cluster.local:8080"
-    ```    *Note: The name of this`ConfigMap`will be referenced in the`ApplicationSet`.\*
+Note: The name of this`ConfigMap`will be referenced in the`ApplicationSet`.
 
-2.  **Provide GitHub Token for SCM Provider**:
-    The `scmProvider` generator also needs a GitHub token to discover repositories. Create a secret in the `argocd` namespace.
+2. **Provide GitHub Token for SCM Provider**:
+   The `scmProvider` generator also needs a GitHub token to discover repositories. Create a secret in the `argocd` namespace.
 
-        ```yaml
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: github-token
-          namespace: argocd
-
-    spec:
-    stringData:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+name: github-token
+namespace: argocd
+spec:
+  stringData:
     token: <YOUR_GITHUB_TOKEN>
-
-    ```
-
-    ```
+```
 
 ## Usage Example
 
