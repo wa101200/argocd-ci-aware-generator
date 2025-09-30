@@ -13,8 +13,6 @@ deployment:
   terminationGracePeriodSeconds: 1
 
   env:
-    UV_LOG_LEVEL:
-      value: debug
     GITHUB_TOKEN:
       valueFrom:
         secretKeyRef:
