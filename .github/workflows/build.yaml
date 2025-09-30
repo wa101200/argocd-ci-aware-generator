@@ -54,6 +54,10 @@ jobs:
         if: ${{ github.ref == 'refs/heads/master' }}
         run: echo "BRANCH_TAG=latest${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
 
+      - name: set tag for release
+        if: ${{ github.event_name == 'release' }}
+        run: echo "BRANCH_TAG=${GITHUB_REF}${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
+
       - name: Build and push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
