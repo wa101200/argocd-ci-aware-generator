@@ -1,44 +1,45 @@
-applicationName: plugin
+application:
+  applicationName: plugin
 
-deployment:
-  ports:
-    - containerPort: 8080
-      name: http
-      protocol: TCP
-  image:
-    repository: crk8swa101frcdev2.azurecr.io/argocd-validate-ci-checks-generator
-    tag: 68a46d5bba43a9ab69d978d3be6824a9378c94b1
-    pullPolicy: Always
+  deployment:
+    ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+    image:
+      repository: crk8swa101frcdev2.azurecr.io/argocd-validate-ci-checks-generator
+      tag: 68a46d5bba43a9ab69d978d3be6824a9378c94b1
+      pullPolicy: Always
 
-  terminationGracePeriodSeconds: 1
+    terminationGracePeriodSeconds: 1
 
-  env:
-    UV_LOG_LEVEL:
-      value: debug
-    GITHUB_TOKEN:
-      valueFrom:
-        secretKeyRef:
-          name: github-token
-          key: GH_TOKEN
+    env:
+      UV_LOG_LEVEL:
+        value: debug
+      GITHUB_TOKEN:
+        valueFrom:
+          secretKeyRef:
+            name: github-token
+            key: GH_TOKEN
 
-  containerSecurityContext:
-    runAsNonRoot: false
-    readOnlyRootFilesystem: false
+    containerSecurityContext:
+      runAsNonRoot: false
+      readOnlyRootFilesystem: false
 
-ingress:
-  enabled: true
-  ingressClassName: nginx-internal
-  annotations:
-    kubernetes.io/ingress.class: nginx-internal
-  hosts:
-    - host: speech-to-text-latest.privatelink.francecentral.azmk8s.io
-      paths:
-        - path: /
-          pathType: Prefix
-          servicePort: http
+  ingress:
+    enabled: true
+    ingressClassName: nginx-internal
+    annotations:
+      kubernetes.io/ingress.class: nginx-internal
+    hosts:
+      - host: speech-to-text-latest.privatelink.francecentral.azmk8s.io
+        paths:
+          - path: /
+            pathType: Prefix
+            servicePort: http
 
-service:
-  ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
+  service:
+    ports:
+      - name: http
+        port: 8080
+        targetPort: 8080
