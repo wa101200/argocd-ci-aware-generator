@@ -70,7 +70,7 @@ data: # The address of the service you deployed in the previous step
 Note: The name of this`ConfigMap`will be referenced in the`ApplicationSet`.
 
 2. **Provide GitHub Token for SCM Provider**:
-   The `scmProvider` generator also needs a GitHub token to discover repositories. Create a secret in the `argocd` namespace.
+   The `scmProvider` generator also needs a GitHub token to discover repositories. Create a secret in the plugin namespace.
 
 ```yaml
 apiVersion: v1
