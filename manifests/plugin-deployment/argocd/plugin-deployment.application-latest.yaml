@@ -56,13 +56,14 @@ spec:
       sources:
         - chart: argocd-ci-aware-generator-plugin
           repoURL: https://wa101200.github.io/argocd-ci-aware-generator/
-          targetRevision: "0.0.7"
+          targetRevision: "0.0.8"
           helm:
             releaseName: plugin
             valuesObject:
-              deployment:
-                image:
-                  tag: "{{ sha }}"
+              application:
+                deployment:
+                  image:
+                    tag: "{{ sha }}"
             valueFiles:
               - $values/manifests/plugin-deployment/values/plugin-deployment.values.yaml
 
