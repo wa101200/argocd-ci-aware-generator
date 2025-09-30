@@ -7,10 +7,12 @@ from github import Auth, Github
 
 logging.basicConfig(level=logging.INFO)
 
+
 logger = logging.getLogger(__name__)
 
 # using an access token
 auth = Auth.Token(os.environ["GITHUB_TOKEN"])
+enable_caching = os.getenv("ENABLE_GITHUB_CACHING", "true").lower() == "true"
 
 githubClient = Github(auth=auth)  # noqa: N816
 

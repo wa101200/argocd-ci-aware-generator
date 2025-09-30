@@ -38,7 +38,7 @@ spec:
             key: token
         filters:
           - repositoryMatch: ^argocd-validate-ci-cheks-generators
-            branchMatch: develop-primary-input
+            branchMatch: configure-k8s
 
   template:
     metadata:
