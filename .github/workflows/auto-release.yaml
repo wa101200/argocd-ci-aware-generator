@@ -64,7 +64,7 @@ jobs:
         with:
           token: ${{ github.token }}
           chart_version: ${{ steps.increment_version.outputs.new_version }}
-          app_version: "0.0.1"
+          app_version: ${{ steps.increment_version.outputs.new_version }}
 
       - name: Create Build with workflow_dispatch
         run: |

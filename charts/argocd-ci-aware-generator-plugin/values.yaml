@@ -7,8 +7,8 @@ application:
         name: http
         protocol: TCP
     image:
-      repository: crk8swa101frcdev2.azurecr.io/argocd-validate-ci-checks-generator
-      tag: latest
+      repository: docker.io/wadhah101/argocd-ci-aware-generator
+      tag: 0.0.24
       pullPolicy: Always
 
     terminationGracePeriodSeconds: 1
