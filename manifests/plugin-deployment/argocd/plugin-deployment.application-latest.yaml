@@ -20,6 +20,7 @@ spec:
     - git@github.com:wa101200/argocd-validate-ci-cheks-generators.git
     - https://stakater.github.io/stakater-charts
     - https://redis-stack.github.io/helm-redis-stack/
+    - https://wa101200.github.io/argocd-ci-aware-generator/
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -37,7 +38,7 @@ spec:
             secretName: github-token
             key: token
         filters:
-          - repositoryMatch: ^argocd-validate-ci-cheks-generators
+          - repositoryMatch: ^argocd-ci-aware-generator
             branchMatch: master
 
   template:
@@ -53,9 +54,9 @@ spec:
           prune: true
           selfHeal: true
       sources:
-        - chart: application
-          repoURL: https://stakater.github.io/stakater-charts
-          targetRevision: "~6.8"
+        - chart: argocd-ci-aware-generator-plugin
+          repoURL: https://wa101200.github.io/argocd-ci-aware-generator/
+          targetRevision: "0.0.7"
           helm:
             releaseName: plugin
             valuesObject:

@@ -1,16 +1,17 @@
-applicationName: plugin
+application:
+  applicationName: plugin
 
-deployment:
-  ports:
-    - containerPort: 8080
-      name: http
-      protocol: TCP
-  image:
-    repository: crk8swa101frcdev2.azurecr.io/argocd-validate-ci-checks-generator
-    tag: 68a46d5bba43a9ab69d978d3be6824a9378c94b1
-    pullPolicy: Always
+  deployment:
+    ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+    image:
+      repository: crk8swa101frcdev2.azurecr.io/argocd-validate-ci-checks-generator
+      tag: 68a46d5bba43a9ab69d978d3be6824a9378c94b1
+      pullPolicy: Always
 
-  terminationGracePeriodSeconds: 1
+    terminationGracePeriodSeconds: 1
 
   env:
     GITHUB_TOKEN:
@@ -19,13 +20,13 @@ deployment:
           name: github-token
           key: GH_TOKEN
 
-  # TODO
-  containerSecurityContext:
-    runAsNonRoot: false
-    readOnlyRootFilesystem: false
+    # TODO
+    containerSecurityContext:
+      runAsNonRoot: false
+      readOnlyRootFilesystem: false
 
-service:
-  ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
+  service:
+    ports:
+      - name: http
+        port: 8080
+        targetPort: 8080
