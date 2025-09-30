@@ -1,0 +1,18 @@
+apiVersion: v1
+entries:
+  argocd-ci-aware-generator-plugin:
+  - apiVersion: v2
+    appVersion: 0.0.1
+    created: "2025-09-30T12:31:30.343784241Z"
+    dependencies:
+    - name: application
+      repository: https://stakater.github.io/stakater-charts
+      version: 6.8.0
+    description: A Helm chart for ArgoCD CI-Aware Generator Plugin
+    digest: 0fc860c100fa54135b04bd69c8698d7e6185576d1cdaaccaae61b03b1ab923b8
+    name: argocd-ci-aware-generator-plugin
+    type: application
+    urls:
+    - https://wa101200.github.io/argocd-validate-ci-cheks-generators/argocd-ci-aware-generator-plugin-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-09-30T12:31:30.340165483Z"
