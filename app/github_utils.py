@@ -27,26 +27,26 @@ async def commit_passed_checks(
     commit = github_client.get_repo(repo).get_commit(commit_sha)
 
     for check_regex in checks_regex:
-        logger.info(f'Validating Check for regex "{check_regex}"')
+        logger.info(f'Validating CI Check for regex "{check_regex}"')
 
         matched_runs = [
             i for i in commit.get_check_runs() if re.match(check_regex, i.name)
         ]
 
         if len(matched_runs) == 0:
-            logger.info(f'No check run found for regex "{check_regex}"')
+            logger.info(f'No CI check run found for regex "{check_regex}"')
 
         for check_run in matched_runs:
             logger.info(
-                f'Check "{check_run.name}" matched "{check_regex}", validating...'
+                f'CI Check "{check_run.name}" matched "{check_regex}", validating...'
             )
             if not (
                 check_run.status == "completed" and check_run.conclusion == "success"
             ):
                 logger.info(
-                    f'Check "{check_run.name}" failed with conclusion "{check_run.conclusion}" and status "{check_run.status}" on regex "{check_regex}"'  # noqa: E501
+                    f'CI Check "{check_run.name}" failed with conclusion "{check_run.conclusion}" and status "{check_run.status}" on regex "{check_regex}"'  # noqa: E501
                 )
                 return False
-        logger.info(f'Check for regex "{check_regex}" passed')
+        logger.info(f'CI Check for regex "{check_regex}" passed')
 
     return True
