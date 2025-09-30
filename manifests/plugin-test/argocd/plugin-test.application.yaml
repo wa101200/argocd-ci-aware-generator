@@ -16,7 +16,7 @@ spec:
                   key: token
               filters:
                 - repositoryMatch: ^argocd-validate-ci-cheks-generators
-                  branchMatch: configure-k8s
+                  branchMatch: master
           - plugin:
               requeueAfterSeconds: 5
               configMapRef:
@@ -47,7 +47,7 @@ spec:
       sources:
         - repoURL: git@github.com:wa101200/argocd-validate-ci-cheks-generators
           targetRevision: "{{ sha }}"
-          path: manifests/speech-to-text-dev/resources2
+          path: manifests/plugin-test/resources
 
       destination:
         server: "https://kubernetes.default.svc"

@@ -15,8 +15,6 @@ deployment:
   env:
     UV_LOG_LEVEL:
       value: debug
-    REDIS_HOST:
-      value: redis-stack.argocd-validate-ci-checks-generators-plugin-latest
     GITHUB_TOKEN:
       valueFrom:
         secretKeyRef:

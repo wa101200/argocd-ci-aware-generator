@@ -38,7 +38,7 @@ spec:
             key: token
         filters:
           - repositoryMatch: ^argocd-validate-ci-cheks-generators
-            branchMatch: configure-k8s
+            branchMatch: master
 
   template:
     metadata:
@@ -63,23 +63,11 @@ spec:
                 image:
                   tag: "{{ sha }}"
             valueFiles:
-              - $values/manifests/speech-to-text-dev/values/app.values.yaml
-
-        - chart: redis-stack
-          repoURL: https://redis-stack.github.io/helm-redis-stack/
-          targetRevision: "~0.4.19"
-          helm:
-            releaseName: redis
-            valueFiles:
-              - $values/manifests/speech-to-text-dev/values/redis.values.yaml
+              - $values/manifests/plugin-deployment/values/plugin-deployment.values.yaml
 
         - repoURL: git@github.com:wa101200/argocd-validate-ci-cheks-generators
           targetRevision: "{{ sha }}"
           ref: values
-
-        - repoURL: git@github.com:wa101200/argocd-validate-ci-cheks-generators
-          targetRevision: "{{ sha }}"
-          path: manifests/speech-to-text-dev/resources
 
       destination:
         server: "https://kubernetes.default.svc"
