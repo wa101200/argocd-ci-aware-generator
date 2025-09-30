@@ -32,17 +32,21 @@ This ensures that a failed commit will not be deployed, and the environment will
 
 The plugin is a web service that must be deployed where ArgoCD can reach it.
 
-1. **Build and Push the Docker Image**:
-   A `Dockerfile` is provided in the `app/` directory. Build and push the image to a container registry of your choice.
-   `bash
-docker build -t your-registry/argocd-ci-aware-plugin:latest ./app
-docker push your-registry/argocd-ci-aware-plugin:latest
-`
+1. **Deploy to Kubernetes using Helm**:
+   The plugin can be easily deployed to your Kubernetes cluster using the provided Helm chart located in the `charts/argocd-ci-aware-generator-plugin` directory.
 
-2. **Deploy to Kubernetes**:
-   Deploy the image as a standard Kubernetes Deployment and expose it with a Service. You will need to provide a `GITHUB_TOKEN` as an environment variable to the deployment.
+   First, ensure you have Helm installed. Then, you can deploy the plugin with a command similar to this:
 
-**Environment Variables:**
+```bash
+helm repo add argocd-ci-aware-generator-plugin https://wa101200.github.io/argocd-ci-aware-generator
+
+helm upgrade --install argocd-ci-aware-generator-plugin argocd-ci-aware-generator-plugin/argocd-ci-aware-generator-plugin --namespace argocd-ci-aware-generator-plugin --create-namespace
+```
+
+1. **Manual Deployment to Kubernetes (Alternative)**:
+   Alternatively, you can manually deploy the image as a standard Kubernetes Deployment and expose it with a Service. You will need to provide a `GITHUB_TOKEN` as an environment variable to the deployment.
+
+**Environment Variables (for manual deployment):**
 
 - `GITHUB_TOKEN`: A GitHub Personal Access Token with `repo` scope (or at least `checks:read`).
 - `DB_FILE`: The path to the persistent database file. Defaults to `db.json`. For production, this should be on a persistent volume.
@@ -60,7 +64,7 @@ metadata:
   name: argocd-validate-ci-checks-generators-plugin
   namespace: argocd
 data: # The address of the service you deployed in the previous step
-  baseUrl: "http://<your-plugin-service-name>.<namespace>.svc.cluster.local:8080"
+  baseUrl: "plugin.argocd-ci-aware-generator-plugin.svc.cluster.local:8080"
 ```
 
 Note: The name of this`ConfigMap`will be referenced in the`ApplicationSet`.
@@ -167,6 +171,6 @@ This project uses `uv` for dependency management.
 
 ## Current Support and Contributions
 
-This plugin is currently implemented for **GitHub Actions** only, as it was developed for a specific use case.
+This plugin currently supports **GitHub Actions** only. It was developed for a specific use case and integrates exclusively with GitHub's CI check API.
 
 **Contributions are welcome!** We encourage pull requests to add support for other SCM providers such as GitLab, Bitbucket, or others.
