@@ -13,6 +13,7 @@ jobs:
       packages: write
       pull-requests: read # to read pull request on release-drafter
       pages: write
+      actions: write
     steps:
       - name: Checkout code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
@@ -69,4 +70,5 @@ jobs:
         run: |
           gh workflow run build.yaml -f tag=${STEPS_INCREMENT_VERSION_OUTPUTS_NEW_VERSION}
         env:
+          GH_TOKEN: ${{ github.token }}
           STEPS_INCREMENT_VERSION_OUTPUTS_NEW_VERSION: ${{ steps.increment_version.outputs.new_version }}
