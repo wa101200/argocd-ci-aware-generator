@@ -1,6 +1,10 @@
+import logging
+import uuid
 from typing import Any
 
 from tinydb import Query, TinyDB
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseService:
@@ -9,6 +13,22 @@ class DatabaseService:
     def __init__(self, db_file: str) -> None:
         self._db = TinyDB(db_file, indent=4, sort_keys=True)
         self._application_table = self._db.table("application")
+
+    async def health_check(self) -> bool:
+        """Checks if the database is healthy."""
+        try:
+            health_check_id = str(uuid.uuid4())
+            test_record = {"type": "health_check", "id": health_check_id}
+
+            result = self._db.insert(test_record)
+            if result is None:
+                raise Exception("Could not insert test record into the database")
+
+            self._db.remove(Query().id == health_check_id)
+            return True
+        except Exception as e:
+            logger.error(f"Database is not healthy: {e}")
+            return False
 
     def create_application(
         self,

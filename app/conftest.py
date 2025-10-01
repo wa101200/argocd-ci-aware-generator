@@ -8,6 +8,7 @@ from dependency_injector import providers
 from httpx import ASGITransport, AsyncClient
 
 from containers import Container
+from github_utils import GithubService
 from main import app
 from state import DatabaseService
 
@@ -18,7 +19,18 @@ def container() -> AsyncGenerator[Container, None]:
     fd, path = tempfile.mkstemp(suffix=".json")
     os.close(fd)
 
-    container = Container(db_service=providers.Singleton(DatabaseService, db_file=path))
+    github_token = os.getenv("GITHUB_TOKEN")
+
+    container = Container(
+        db_service=providers.Singleton(
+            DatabaseService,
+            db_file=path,
+        ),
+        github_service=providers.Singleton(
+            GithubService,
+            github_token=github_token,
+        ),
+    )
 
     yield container
     container.db_service().close()
