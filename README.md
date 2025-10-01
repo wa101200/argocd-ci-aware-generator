@@ -11,40 +11,32 @@ The project addresses a core limitation in the ArgoCD ApplicationSet generators 
 - **Prevents Initial Deployment**: If the first deployment for a branch has failing checks, no application is generated.
 - **Flexible Check Matching**: Use regular expressions to specify which CI checks must pass.
 - **Broad Generator Support**: Works with both `scmProvider` and `pullRequest` generators.
-- **Easy to Install**: Deploys as a standard service within your Kubernetes cluster.
 
 ## How It Works
 
-The plugin functions as a custom `getparams` generator, designed to be used within a `matrix` generator in an `ApplicationSet`.
+The plugin functions as a custom argocd generator plugin, designed to be used within a `matrix` generator in an `ApplicationSet`.
 
-1. **Discovery**: An initial generator (like the SCM or PR provider) discovers candidate repositories, branches, and commit SHAs.
+1. **Discovery**: An initial generator (like the SCM or PR provider) discovers candidate repositories & branches
 2. **Validation**: The `matrix` generator passes the discovered parameters to this plugin. The plugin receives the commit SHA and a user-defined list of required CI checks (as regular expressions).
 3. **CI Check**: It communicates with the SCM provider's API (currently GitHub) to verify that all specified checks for the given commit have completed with a `success` conclusion.
 4. **Stateful Decision**:
    - **If checks passed**: The plugin returns the parameters, allowing the `ApplicationSet` to generate the `Application`. It also records the commit SHA as the "last known good state" in a persistent JSON database.
    - **If checks failed**: The plugin checks its database for a previously recorded "last known good state" for that repository and branch. If one exists, it returns the parameters from that older, successful commit. If no prior successful commit is known, it returns an empty list, preventing the `Application` from being generated at all.
 
-This ensures that a failed commit will not be deployed, and the environment will remain on the last stable version.
-
 ## Setup and Installation
 
 ### 1. Deploy the Plugin
 
-The plugin is a web service that must be deployed where ArgoCD can reach it.
+The plugin is an HTTP service that must be deployed where ArgoCD can reach it.
 
 1. **Deploy to Kubernetes using Helm**:
    The plugin can be easily deployed to your Kubernetes cluster using the provided Helm chart located in the `charts/argocd-ci-aware-generator-plugin` directory.
 
-   First, ensure you have Helm installed. Then, you can deploy the plugin with a command similar to this:
-
-```bash
+```sh
 helm repo add argocd-ci-aware-generator-plugin https://wa101200.github.io/argocd-ci-aware-generator
 
 helm upgrade --install argocd-ci-aware-generator-plugin argocd-ci-aware-generator-plugin/argocd-ci-aware-generator-plugin --namespace argocd-ci-aware-generator-plugin --create-namespace
 ```
-
-1. **Manual Deployment to Kubernetes (Alternative)**:
-   Alternatively, you can manually deploy the image as a standard Kubernetes Deployment and expose it with a Service. You will need to provide a `GITHUB_TOKEN` as an environment variable to the deployment.
 
 **Environment Variables (for manual deployment):**
 
@@ -57,11 +49,10 @@ helm upgrade --install argocd-ci-aware-generator-plugin argocd-ci-aware-generato
    ArgoCD needs to know about the plugin. Apply a `ConfigMap` to your `argocd` namespace to register it.
 
 ```yaml
-# argocd-plugin-cm.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: argocd-validate-ci-checks-generators-plugin
+  name: argocd-ci-aware-generator-plugin
   namespace: argocd
 data: # The address of the service you deployed in the previous step
   baseUrl: "plugin.argocd-ci-aware-generator-plugin.svc.cluster.local:8080"
@@ -69,15 +60,16 @@ data: # The address of the service you deployed in the previous step
 
 Note: The name of this`ConfigMap`will be referenced in the`ApplicationSet`.
 
-2. **Provide GitHub Token for SCM Provider**:
-   The `scmProvider` generator also needs a GitHub token to discover repositories. Create a secret in the plugin namespace.
+2. **Provide GitHub Token for the plugin**:
+   If the target project belongs to a private Github repository, the plugin needs a GitHub token to discover repositories and ci checks
 
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
 name: github-token
-namespace: argocd
+# plugin namespace
+namespace: argocd-ci-aware-generator-plugin
 spec:
   stringData:
     token: <YOUR_GITHUB_TOKEN>
@@ -126,6 +118,7 @@ spec:
                     - "build"
                   # Pass the data from the scmProvider to the plugin
                   data:
+                    # The needed attributes for the plugin to function with SCM generator, you can pass other attributes as well and they would be forwarded to the template
                     branch: "{{ branch }}"
                     organization: "{{ organization }}"
                     repository: "{{ repository }}"
@@ -159,15 +152,13 @@ spec:
 
 The plugin maintains a simple JSON database (`tinydb`) to track the last known good commit SHA for each `(ApplicationSet, repository, branch)` tuple.
 
-For a production setup, it is **critical** to mount a `PersistentVolume` to the path specified by the `DB_FILE` environment variable. This ensures that the state of known good commits is not lost if the plugin pod restarts.
-
 ## Development
 
-This project uses `uv` for dependency management.
+This project uses `uv` for dependency management with `app`.
 
 - **Install dependencies**: `uv sync`
-- **Run the server locally**: `uv run serve`
-- **Run tests**: `uv run test` (Requires a `GITHUB_TOKEN` environment variable)
+- **Run the server locally**: `mise serve`
+- **Run tests**: `mise test` (Requires a `GITHUB_TOKEN` environment variable)
 
 ## Current Support and Contributions
 
