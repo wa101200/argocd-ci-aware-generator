@@ -53,18 +53,18 @@ jobs:
         run: echo "TAG=${{ github.event.pull_request.head.sha }}${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
 
       - name: set tag for main
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
         run: echo "TAG=${{ github.sha }}${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
 
-      - name: set tag for pull request
+      - name: set branch tag for pull request
         if: ${{ github.ref != 'refs/heads/master' }}
         run: echo "BRANCH_TAG=pr-${{ github.event.pull_request.number }}${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
 
-      - name: set tag for main
-        if: ${{ github.ref == 'refs/heads/master' }}
+      - name: set branch tag for main
+        if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
         run: echo "BRANCH_TAG=latest${{ matrix.project.suffix }}" >> "$GITHUB_ENV"
 
-      - name: set tag for manual dispatch
+      - name: set branch tag for manual dispatch
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: echo "BRANCH_TAG=${GITHUB_EVENT_INPUTS_TAG}" >> "$GITHUB_ENV"
         env:
