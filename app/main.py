@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import Depends, FastAPI
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from containers import Container
@@ -215,7 +216,7 @@ async def process_argocd_param(
 async def health_check(
     db_service: DatabaseService = Depends(Provide[Container.db_service]),  # noqa: B008 TODO
     github_service: GithubService = Depends(Provide[Container.github_service]),  # noqa: B008 TODO
-) -> dict[str, Any]:
+) -> JSONResponse:
     """Health check endpoint."""
     db_healthy, github_healthy = await asyncio.gather(
         db_service.health_check(), github_service.health_check()
@@ -230,8 +231,4 @@ async def health_check(
 
     status_code = 200 if overall_status else 503
 
-    return {
-        "status": "healthy" if overall_status else "unhealthy",
-        **{k: ("healthy" if v else "unhealthy") for k, v in health_status.items()},
-        "status_code": status_code,
-    }
+    return JSONResponse(content=health_status, status_code=status_code)
