@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -8,7 +9,7 @@ from fastapi import Depends, FastAPI
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from containers import Container
-from github_utils import commit_passed_checks
+from github_utils import GithubService
 from state import DatabaseService
 
 logging.basicConfig(level=logging.DEBUG)
@@ -89,7 +90,8 @@ async def lifespan(_app: FastAPI):  # noqa: ANN201 TODO
     """Initializes the container and sets up the database connection."""
     container = Container()
     db_file = os.getenv("DB_FILE", "db.json")
-    container.config.from_dict({"db_file": db_file})
+    github_token = os.getenv("GITHUB_TOKEN")
+    container.config.from_dict({"db_file": db_file, "github_token": github_token})
     container.wire(modules=[__name__])
     _app.container = container
     yield
@@ -104,6 +106,7 @@ app = FastAPI(lifespan=lifespan)
 async def process_argocd_param(
     request: GetParamsRequest,
     db_service: DatabaseService = Depends(Provide[Container.db_service]),  # noqa: B008 TODO
+    github_service: GithubService = Depends(Provide[Container.github_service]),  # noqa: B008 TODO
 ) -> GetParamsResponse:
     """Processes the ArgoCD getparams request."""
     application_set_name = request.applicationSetName
@@ -145,14 +148,14 @@ async def process_argocd_param(
         application_data is not None
         and application_data["last_known_good_sha"] == sha_check_fingerprint
     ):
-        logger.info(
+        logger.debug(
             f"CACHE HIT: Application found for {application_set_name}, {repository}, {branch} with last known good sha {sha_check_fingerprint} matching current SHA"  # noqa: E501
         )
 
         resp = {"output": {"parameters": [state]}}
         return GetParamsResponse(**resp)
 
-    checks_result = await commit_passed_checks(
+    checks_result = github_service.commit_passed_checks(
         checks_regex=checks_regex,
         repo=f"{organization}/{repository}",
         commit_sha=sha,
@@ -205,3 +208,30 @@ async def process_argocd_param(
             return GetParamsResponse(
                 **{"output": {"parameters": [application_data["state"]]}}
             )
+
+
+@app.get("/health")
+@inject
+async def health_check(
+    db_service: DatabaseService = Depends(Provide[Container.db_service]),  # noqa: B008 TODO
+    github_service: GithubService = Depends(Provide[Container.github_service]),  # noqa: B008 TODO
+) -> dict[str, Any]:
+    """Health check endpoint."""
+    db_healthy, github_healthy = await asyncio.gather(
+        db_service.health_check(), github_service.health_check()
+    )
+
+    health_status = {
+        "database": db_healthy,
+        "github": github_healthy,
+    }
+
+    overall_status = all(health_status.values())
+
+    status_code = 200 if overall_status else 503
+
+    return {
+        "status": "healthy" if overall_status else "unhealthy",
+        **{k: ("healthy" if v else "unhealthy") for k, v in health_status.items()},
+        "status_code": status_code,
+    }
