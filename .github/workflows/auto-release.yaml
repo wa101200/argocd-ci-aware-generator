@@ -68,7 +68,8 @@ jobs:
 
       - name: Create Build with workflow_dispatch
         run: |
-          gh workflow run build.yaml -f tag=${STEPS_INCREMENT_VERSION_OUTPUTS_NEW_VERSION}
+          gh workflow run build.yaml -f tag=${STEPS_INCREMENT_VERSION_OUTPUTS_NEW_VERSION} -f commit=${GITHUB_SHA}
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_SHA: ${{ github.sha }}
           STEPS_INCREMENT_VERSION_OUTPUTS_NEW_VERSION: ${{ steps.increment_version.outputs.new_version }}
