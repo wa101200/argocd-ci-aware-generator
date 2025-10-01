@@ -10,7 +10,7 @@ The project addresses a core limitation in the ArgoCD ApplicationSet generators 
 - **Stateful Fallback**: If the latest commit fails its checks, the plugin deploys the last known good commit, preventing a broken deployment.
 - **Prevents Initial Deployment**: If the first deployment for a branch has failing checks, no application is generated.
 - **Flexible Check Matching**: Use regular expressions to specify which CI checks must pass.
-- **Broad Generator Support**: Works with both `scmProvider` and `pullRequest` generators.
+- **Generator Support**: Works with both `scmProvider` and `pullRequest` generators.
 
 ## How It Works
 
