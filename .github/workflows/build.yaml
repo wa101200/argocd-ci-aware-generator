@@ -11,6 +11,9 @@ on:
       tag:
         required: true
         type: string
+      commit:
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -30,8 +33,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         with:
           persist-credentials: false
+          ref: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.commit != '' && github.event.inputs.commit) || github.sha }}
 
       - name: Set up Docker Buildx
         id: setup-buildx
