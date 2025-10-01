@@ -21,7 +21,13 @@ class GithubService:
     async def health_check(self) -> bool:
         """Checks if the Github service is healthy."""
         try:
-            self._github_client.get_rate_limit()
+            rate = self._github_client.get_rate_limit()
+
+            if rate.rate.remaining < 1:
+                logger.error(
+                    f"Github rate limit is reached, remaining: {rate.rate.remaining}"
+                )
+                return False
             logger.debug(f"Github rate limit: {self._github_client.get_rate_limit()}")
             return True
         except Exception as e:
